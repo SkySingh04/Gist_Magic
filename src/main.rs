@@ -1,13 +1,12 @@
-use serde::Deserialize;
 use reqwest::Error;
-use dotenv::dotenv;
-use std::env;
 
-#[derive(Deserialize , Debug)]
-struct User {
-    id: u32,
-    login: String,
-}
+
+
+
+use gist_magic_lib::requests; 
+
+
+
 
 //TODO: Add Logger to handle different log levels
 //TODO: Connect to CLI to read flags for owner and repo
@@ -19,30 +18,23 @@ struct User {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    dotenv().ok();
-    let github_token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not found in .env file");
     
-    let request_url = format!("https://api.github.com/repos/{owner}/{repo}/stargazers", 
-   owner ="Akash-Singh04" , repo="QuizQuest");
+    let request_url: &str = "https://api.github.com/gists";
 
-   println!( "Request URL: {}", request_url);
 
-    let response = reqwest::Client::new()
-        .get(&request_url)
-        .header("User-Agent", "Gist_Magic")
-        .header("Authorization", &github_token)
-        .send()
-        .await?;
 
-    if response.status().is_success() {
-        let users: Vec<User> = response.json().await?;
-        println!("{:?}", users);
-    
-    } else {
-        println!("Request Failed with Status: {:?}", response.status());
-    }
-
-    Ok(())
-
-    // println!("Hello, world!
+  match requests::fetch_gists(&request_url).await {
+      Ok(gists) => {
+          for gist in gists {
+            println!("ID: {}", gist.id);
+            println!("Description: {:?}", gist.description);
+            println!("Owner: {}", gist.owner.login);
+            println!("------------------------");
+          }
+      },
+      Err(e) => {
+          eprintln!("Error: {}", e);
+      }
+}
+  Ok(())
 }

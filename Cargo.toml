@@ -11,3 +11,10 @@ reqwest = { version = "0.12.4" ,  features=["json"]}
 serde = {version = "1.0.198" , features=["derive"]}
 tokio = { version = "1.37.0" , features =["full"]}
 
+[lib]
+name = "gist_magic_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gist_magic"
+path = "src/main.rs"
