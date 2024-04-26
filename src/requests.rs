@@ -25,9 +25,7 @@ pub async fn view_gist(request_url: &str , github_token:&str) -> Result<Gist, Er
         .send()
         .await?;
 
-    // Ensure the response is successful
-    // response.error_for_status()?;
-
+    
     // Deserialize the response body
     let gist: Gist = response.json().await
         .map_err(|e| Error::from(e))?;

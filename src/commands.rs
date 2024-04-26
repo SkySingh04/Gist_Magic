@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
-use crate::requests::{fetch_gists , view_gist}; 
+use crate::requests::{fetch_gists , view_gist};
+use textwrap::fill;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 
@@ -69,16 +71,22 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                     println!("Description: {:?}", gist.description);
                     println!("Owner: {}", gist.owner.login);
                     println!("Gist Files: ");
-                    if let Some(filename) = gist.files.get("filename").and_then(|v| v.as_str()) {
-                        println!("Filename: {}", filename);
+                    // Iterate over each file in the gist
+                    if let Some(files) = gist.files.as_object() {
+                        for (filename, file) in files {
+                            println!("Filename: {}", filename);
+                            println!("Language: {}", file["language"]);
+                            println!("Size: {} bytes", file["size"]);
+                            println!("Raw URL: {}", file["raw_url"]);
+                            println!("-------------------------");
+                            println!("Content:");
+                            // let content = file["content"].as_str().unwrap_or("");
+                            // Wrap the content of the file before printing
+                            let wrapped_content = fill(file["content"].as_str().unwrap_or(""), 80);
+                            println!("{}", wrapped_content);
+                            println!("-------------------------");
+                        }
                     }
-                    println!("File type: {}", gist.files.get("file_type").and_then(|v| v.as_str()).unwrap_or(""));
-                    println!("Language: {}", gist.files.get("language").and_then(|v| v.as_str()).unwrap_or(""));
-                    println!("Raw URL: {}", gist.files.get("raw_url").and_then(|v| v.as_str()).unwrap_or(""));
-                    println!("Size: {}", gist.files.get("size").and_then(|v| v.as_str()).unwrap_or(""));
-                    println!("Truncated: {}", gist.files.get("truncated").and_then(|v| v.as_bool()).unwrap_or(false));
-                    println!("Content: {}", gist.files.get("content").and_then(|v| v.as_str()).unwrap_or(""));
-                    println!("------------------------");
                 },
                 Err(e) => {
                     eprintln!("Error: {}", e);
