@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use crate::requests::{fetch_gists , view_gist};
 use textwrap::fill;
+use logger_rust::*;
+
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -13,7 +15,10 @@ pub struct Args {
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
     #[command(about = "List all gists")]
-    List,
+    List {
+    #[arg(long, short = 'o', help = "Username of the owner of gists to list")]
+    username: Option<String>
+    },
     #[command(about = "Create a new gist")]
     Create,
     #[command(about = "Edit a gist")]
@@ -35,10 +40,15 @@ enum Commands {
 }
 
 pub async fn  parse_cmd(args: Args , github_token: &str) {
-    let mut request_url: &str = "https://api.github.com/gists";
+    let mut request_url:  String = "https://api.github.com/gists".to_string();
 
     match args.cmd{
-        Commands::List => {
+        Commands::List{username} => {
+            if let Some(owner) = username {
+                log_info!("Listing gists for user: {}", owner);
+                let formatted_url = format!("https://api.github.com/users/{}/gists", owner);
+                request_url = formatted_url;
+            }
             match fetch_gists(&request_url  , &github_token).await {
                 Ok(gists) => {
                     for gist in gists {
@@ -47,9 +57,10 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                       println!("Owner: {}", gist.owner.login);
                       println!("------------------------");
                     }
+                    log_info!("To view a gist, use the view command with the --gistid flag.")
                 },
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    log_error!("Error: {}", e);
                 }
           }
         },
@@ -62,16 +73,15 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
         Commands::Delete => {
             println!("Delete a gist");
         },
-        Commands::View{gistid}  => {
-            let formatted_url = format!("https://api.github.com/gists/{}", gistid);
-            request_url = &formatted_url;
+        Commands::View{gistid  }  => {
+            let formatted_url : String = format!("https://api.github.com/gists/{}", gistid);
+            request_url = formatted_url;
             match view_gist(&request_url , &github_token).await {
                 Ok(gist) => {
                     println!("ID: {}", gist.id);
                     println!("Description: {:?}", gist.description);
                     println!("Owner: {}", gist.owner.login);
                     println!("Gist Files: ");
-                    // Iterate over each file in the gist
                     if let Some(files) = gist.files.as_object() {
                         for (filename, file) in files {
                             println!("Filename: {}", filename);
@@ -80,8 +90,6 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                             println!("Raw URL: {}", file["raw_url"]);
                             println!("-------------------------");
                             println!("Content:");
-                            // let content = file["content"].as_str().unwrap_or("");
-                            // Wrap the content of the file before printing
                             let wrapped_content = fill(file["content"].as_str().unwrap_or(""), 80);
                             println!("{}", wrapped_content);
                             println!("-------------------------");
@@ -89,7 +97,8 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                     }
                 },
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    log_error!("Error: {}", e);
+                    ()
                 }
             }
         },

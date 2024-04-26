@@ -13,6 +13,8 @@ pub async fn fetch_gists(request_url: &str , github_token:&str) -> Result<Vec<Gi
         .send()
         .await?;
 
+        response.error_for_status_ref()?;
+
         let gists: Vec<Gist> = response.json().await?;
         Ok(gists)
 }
@@ -25,9 +27,9 @@ pub async fn view_gist(request_url: &str , github_token:&str) -> Result<Gist, Er
         .send()
         .await?;
 
+        response.error_for_status_ref()?;
     
-    // Deserialize the response body
-    let gist: Gist = response.json().await
+        let gist: Gist = response.json().await
         .map_err(|e| Error::from(e))?;
 
     Ok(gist)

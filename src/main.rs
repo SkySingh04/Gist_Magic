@@ -1,14 +1,12 @@
 use clap::Parser;
 use  reqwest::Error;
 use gist_magic_lib::commands::Args;
+use logger_rust::*;
 
 
 use gist_magic_lib::config::get_config;
 use gist_magic_lib::commands::parse_cmd;
 
-//TODO: Add Logger to handle different log levels
-//TODO: Connect to CLI to read flags for owner and repo
-//TODO: Add different commands for different operations
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -16,7 +14,7 @@ async fn main() -> Result<(), Error> {
     let github_token = match get_config(&mut String::new()) {
         Ok(token) => token,
         Err(e) => {
-            eprintln!("Error: {}", e);
+            log_error!("Error: {}", e);
             String::new()
         }
     };

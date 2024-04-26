@@ -2,6 +2,8 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 use crate::models::Config;
+use logger_rust::*;
+
 
 
 
@@ -10,7 +12,7 @@ pub fn get_config(github_token: &mut String) -> Result<String, Box<dyn std::erro
     let home_dir = match dirs::home_dir() {
         Some(path) => path,
         None => {
-            eprintln!("Failed to get user's home directory.");
+            log_error!("Failed to get user's home directory.");
             return Err("Failed to get user's home directory.".into());
         }
     };
@@ -22,7 +24,7 @@ pub fn get_config(github_token: &mut String) -> Result<String, Box<dyn std::erro
         match serde_json::from_str::<Config>(&contents) {
             Ok(config) => config,
             Err(err) => {
-                eprintln!("Error parsing configuration file: {}", err);
+                log_error!("Error parsing configuration file: {}", err);
                 return Err(format!("Error parsing configuration file: {}", err).into());
             }
         }
@@ -36,8 +38,8 @@ pub fn get_config(github_token: &mut String) -> Result<String, Box<dyn std::erro
         Some(token) => token,
         None => {
             // If the token is not present, prompt the user to input it
-            println!("GitHub token is not set.");
-            print!("Please enter your GitHub token: ");
+            log_warn!("GitHub token is not set.");
+            log_info!("Please enter your GitHub token: ");
             io::stdout().flush().unwrap();
             let mut input = String::new();
             io::stdin().read_line(&mut input).expect("Failed to read line");
@@ -48,7 +50,7 @@ pub fn get_config(github_token: &mut String) -> Result<String, Box<dyn std::erro
                 github_token: Some(github_token.clone()),
             };
             if let Err(err) = save_config(&config_path, &new_config) {
-                eprintln!("Error saving configuration: {}", err);
+                log_error!("Error saving configuration: {}", err);
                 return Err(format!("Error saving configuration: {}", err).into());
             }
 
