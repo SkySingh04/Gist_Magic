@@ -1,20 +1,13 @@
 // src/requests.rs
 use reqwest::Error;
-// use std::str::FromStr;
-use dotenv::dotenv;
-use std::env;
 use crate::models::User;
 use crate::models::Gist;
 
 
 
 
-pub async fn fetch_stargazers(request_url: &str) -> Result<Vec<User>, Error> {
-    dotenv().ok();
+pub async fn fetch_stargazers(request_url: &str , github_token:&str) -> Result<Vec<User>, Error> {
     
-    let github_token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not found in .env file");
-
-
     let response = reqwest::Client::new()
         .get(request_url)
         .header("User-Agent", "Gist_Magic")
@@ -23,13 +16,16 @@ pub async fn fetch_stargazers(request_url: &str) -> Result<Vec<User>, Error> {
         .await?;
 
     let users: Vec<User> = response.json().await?;
+    //print the users
+    for user in &users {
+        println!("ID: {}", user.id);
+        println!("Login: {}", user.login);
+        println!("------------------------");
+    }
     Ok(users)
 }
 
-pub async fn fetch_gists(request_url: &str) -> Result<Vec<Gist>, Error> {
-    dotenv().ok();
-    
-    let github_token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not found in .env file");
+pub async fn fetch_gists(request_url: &str , github_token:&str) -> Result<Vec<Gist>, Error> {
 
     let response = reqwest::Client::new()
         .get(request_url)

@@ -1,81 +1,37 @@
-use reqwest::Error;
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use  reqwest::Error;
+use gist_magic_lib::commands::Args;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    #[command(subcommand)]
-    cmd: Commands
-}
-
-#[derive(Subcommand, Debug, Clone)]
-enum Commands {
-    #[command(about = "List all gists")]
-    List,
-    #[command(about = "Create a new gist")]
-    Create,
-    #[command(about = "Edit a gist")]
-    Edit,
-    #[command(about = "Delete a gist")]
-    Delete,
-    #[command(about = "View a gist")]
-    View,
-    #[command(about = "Star a gist")]
-    Star,
-    #[command(about = "Unstar a gist")]
-    Unstar,
-    #[command(about = "List all stargazers of a gist")]
-    Stargazers,
-}
-
-use gist_magic_lib::requests; 
-
-
-
+use gist_magic_lib::requests::fetch_gists; 
+use gist_magic_lib::config::get_config;
+use gist_magic_lib::commands::parse_cmd;
 
 //TODO: Add Logger to handle different log levels
 //TODO: Connect to CLI to read flags for owner and repo
 //TODO: Add different commands for different operations
 
-
-
-
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-  let args = Args::parse();
+
+    let github_token = match get_config(&mut String::new()) {
+        Ok(token) => token,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            String::new()
+        }
+    };
+
+    let args = Args::parse();
+    parse_cmd(args);
+
+    print!("GitHub Token: {}", github_token);
+    
   
-  match args.cmd{
-      Commands::List => {
-        println!("List all gists");
-      },
-      Commands::Create => {
-          println!("Create a new gist");
-      },
-      Commands::Edit => {
-          println!("Edit a gist");
-      },
-      Commands::Delete => {
-          println!("Delete a gist");
-      },
-      Commands::View => {
-          println!("View a gist");
-      },
-      Commands::Star => {
-          println!("Star a gist");
-      },
-      Commands::Unstar => {
-          println!("Unstar a gist");
-      },
-      Commands::Stargazers => {
-          println!("List all stargazers of a gist");
-      }
-  }
     let request_url: &str = "https://api.github.com/gists";
 
 
 
-  match requests::fetch_gists(&request_url).await {
+  match fetch_gists(&request_url  , &github_token).await {
       Ok(gists) => {
           for gist in gists {
             println!("ID: {}", gist.id);
