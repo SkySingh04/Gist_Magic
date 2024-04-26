@@ -2,7 +2,7 @@ use clap::Parser;
 use  reqwest::Error;
 use gist_magic_lib::commands::Args;
 
-use gist_magic_lib::requests::fetch_gists; 
+
 use gist_magic_lib::config::get_config;
 use gist_magic_lib::commands::parse_cmd;
 
@@ -22,27 +22,8 @@ async fn main() -> Result<(), Error> {
     };
 
     let args = Args::parse();
-    parse_cmd(args);
-
-    print!("GitHub Token: {}", github_token);
-    
-  
-    let request_url: &str = "https://api.github.com/gists";
+    parse_cmd(args, &github_token).await; // Await the parse_cmd function call.
 
 
-
-  match fetch_gists(&request_url  , &github_token).await {
-      Ok(gists) => {
-          for gist in gists {
-            println!("ID: {}", gist.id);
-            println!("Description: {:?}", gist.description);
-            println!("Owner: {}", gist.owner.login);
-            println!("------------------------");
-          }
-      },
-      Err(e) => {
-          eprintln!("Error: {}", e);
-      }
-}
   Ok(())
 }
