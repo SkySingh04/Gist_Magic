@@ -1,9 +1,8 @@
 use clap::{Parser, Subcommand};
-use serde::de;
-use crate::requests::{fetch_gists , view_gist ,delete_gist , star_gist , unstar_gist};
+// use serde::de;
+use crate::requests::{fetch_gists , view_gist ,delete_gist , star_gist , unstar_gist , create_gist};
 use textwrap::fill;
 use logger_rust::*;
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -82,27 +81,68 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
           }
         },
         Commands::Create{filepath ,start, end} => {
-            // if let Some(files) = files {
-            //     log_info!("Creating a gist from multiple files");
-            //     for file in files {
-            //         println!("Creating a gist from file: {}", file);
-            //     }
-            // } else if let Some(filepath) = filepath {
+            let mut filename = String::new();
+            let mut content = String::new();
+            if let Some(file) = filepath {
+                filename = file;
+                content = std::fs::read_to_string(&filename).expect("Could not read file");
+                if start.is_some() && end.is_some() {
+                    let start = start.unwrap();
+                    let end = end.unwrap();
+                    content = content.lines().skip(start - 1).take(end - start + 1).collect::<Vec<&str>>().join("\n");
+                }
+                if content.is_empty() {
+                    log_error!("File is empty");
+                    return;
+                }
+                println!("Enter the description of the gist: ");
+                let mut description = String::new();
+                std::io::stdin().read_line(&mut description).expect("Could not read line");
+                let description = description.trim();
+                match create_gist(&request_url , &github_token , description , &filename , &content).await {
+                    Ok(gist) => {
+                        log_info!("Gist created successfully with id: {}", gist.id);
+                    },
+                    Err(e) => {
+                        log_error!("Error: {}", e);
+                    }
+                }
 
-            //     //get the description of the gist from user
-            //     println!("Enter the description of the gist: ");
-            //     let mut description = String::new();
-            //     std::io::stdin().read_line(&mut description).expect("Could not read line");
-            //     let description = description.trim();
-            //     match create_gist(&request_url , &github_token , description , filename , content).await {
-            //         Ok(gist) => {
-            //             log_info!("Gist created successfully  with id: {}" , gist.id);
-            //         },
-            //         Err(e) => {
-            //             log_error!("Error: {}", e);
-            //         }
-            //     }
-            // }
+
+            }
+            else{
+                log_info!("Enter the filename:");
+                std::io::stdin().read_line(&mut filename).expect("Could not read line");
+                let filename = filename.trim();
+                if filename.is_empty() {
+                    log_error!("Filename cannot be empty");
+                    return;
+                }
+                let template = "Enter the content of the gist:\n";
+                let editedtemplate = edit::edit(template);
+                match editedtemplate {
+                    Ok(editedtemplate) => {
+                        content = editedtemplate;
+                    },
+                    Err(e) => {
+                        log_error!("Error: {}", e);
+                    }
+                }
+                //get the description of the gist from user
+                println!("Enter the description of the gist: ");
+                let mut description = String::new();
+                std::io::stdin().read_line(&mut description).expect("Could not read line");
+                let description = description.trim();
+                
+                match create_gist(&request_url , &github_token , description , filename , &content).await {
+                    Ok(gist) => {
+                        log_info!("Gist created successfully  with id: {}" , gist.id);
+                    },
+                    Err(e) => {
+                        log_error!("Error: {}", e);
+                    }
+                }
+            }
             log_info!("Opening the editor to create a new gist.")
         },
         Commands::Edit{gistid} => {

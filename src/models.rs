@@ -37,3 +37,15 @@ pub struct Owner {
 pub struct Config {
     pub github_token: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GistFile {
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GistPayload {
+    pub description: String,
+    pub public: bool,
+    pub files: std::collections::HashMap<String, GistFile>,
+}

@@ -1,7 +1,8 @@
 // src/requests.rs
 use reqwest::Error;
 use crate::models::Gist;
-
+use crate::models::GistFile;
+use crate::models::GistPayload;
 
 
 pub async fn fetch_gists(request_url: &str , github_token:&str) -> Result<Vec<Gist>, Error> {
@@ -75,25 +76,32 @@ pub async fn unstar_gist(request_url: &str , github_token:&str) -> Result<(), Er
     Ok(())
 }
 
-// pub async fn create_gist(request_url: &str , github_token:&str , description: &str , filename: &str , content: String) -> Result<Gist, Error> {
-//     // let mut files = std::collections::HashMap::new();
-//     // files.insert(filename, reqwest::multipart::Part::text(content));
-//     // let mut payload = std::collections::HashMap::new();
-//     // payload.insert("description", description);
-//     // payload.insert("public", "true");
-//     // payload.insert("files", serde_json::to_value(&files).unwrap().as_object().unwrap());
-//     // let response = reqwest::Client::new()
-//     //     .post(request_url)
-//     //     .header("User-Agent", "Gist_Magic")
-//     //     .header("Authorization", format!("token {}", github_token))
-//     //     .json(&payload)
-//     //     .send()
-//     //     .await?;
 
-//     //     response.error_for_status_ref()?;
+
+
+pub async fn create_gist(request_url: &str , github_token:&str , description: &str , filename: &str , content: &str) -> Result<Gist, Error> {
+    let mut files = std::collections::HashMap::new();
     
-//     //     let gist: Gist = response.json().await
-//     //     .map_err(|e| Error::from(e))?;
+    files.insert(filename.to_owned(), GistFile { content: content.to_owned() });
+    // filename is not being sent???
+    let payload = GistPayload {
+        description: description.to_owned(),
+        public: true,
+        files,
+    }; 
 
-//     // Ok(gist)
-// }
+    let response = reqwest::Client::new()
+        .post(request_url)
+        .header("User-Agent", "Gist_Magic")
+        .header("Authorization", format!("token {}", github_token))
+        .json(&payload)
+        .send()
+        .await?;
+
+    response.error_for_status_ref()?;
+    
+    let gist: Gist = response.json().await
+        .map_err(|e| Error::from(e))?;
+
+    Ok(gist)
+}
