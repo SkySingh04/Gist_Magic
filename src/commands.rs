@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use crate::requests::{fetch_gists , view_gist ,delete_gist , star_gist , unstar_gist , create_gist , edit_gist};
 use textwrap::fill;
 use logger_rust::*;
-use crate::models::{Gist , GistFile , GistPayload};
+use crate::models::{ GistFile , GistPayload};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
