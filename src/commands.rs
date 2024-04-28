@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
-use crate::requests::{fetch_gists , view_gist};
+use serde::de;
+use crate::requests::{fetch_gists , view_gist ,delete_gist , star_gist , unstar_gist};
 use textwrap::fill;
 use logger_rust::*;
 
@@ -20,23 +21,39 @@ enum Commands {
     username: Option<String>
     },
     #[command(about = "Create a new gist")]
-    Create,
+    Create{
+    #[arg(long, short = 'f', help = "File to create a gist from")]
+    filepath: Option<String>,
+    #[arg(long, short = 's', help = "Starting line of the file to create a gist from")]
+    start: Option<usize>,
+    #[arg(long, short = 'e', help = "Ending line of the file to create a gist from")]
+    end: Option<usize>,
+    },
     #[command(about = "Edit a gist")]
     Edit{
     #[arg(long, short = 'g' , help = "ID of the gist to list stargazers for")]
     gistid: String,
 },
     #[command(about = "Delete a gist")]
-    Delete,
+    Delete{
+    #[arg(long, short = 'g' , help = "ID of the gist to be deleted")]
+    gistid: String,
+    },
     #[command(about = "View a gist")]
     View{
-    #[arg(long, short = 'g' , help = "ID of the gist to list stargazers for")]
+    #[arg(long, short = 'g' , help = "ID of the gist to view")]
     gistid: String,
 },
     #[command(about = "Star a gist")]
-    Star,
+    Star{
+    #[arg(long, short = 'g' , help = "ID of the gist to star")]
+    gistid: String,
+    },
     #[command(about = "Unstar a gist")]
-    Unstar,
+    Unstar{
+    #[arg(long, short = 'g' , help = "ID of the gist to unstar")]
+    gistid: String,
+    },
 }
 
 pub async fn  parse_cmd(args: Args , github_token: &str) {
@@ -64,14 +81,54 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                 }
           }
         },
-        Commands::Create => {
-            println!("Create a new gist");
+        Commands::Create{filepath ,start, end} => {
+            // if let Some(files) = files {
+            //     log_info!("Creating a gist from multiple files");
+            //     for file in files {
+            //         println!("Creating a gist from file: {}", file);
+            //     }
+            // } else if let Some(filepath) = filepath {
+
+            //     //get the description of the gist from user
+            //     println!("Enter the description of the gist: ");
+            //     let mut description = String::new();
+            //     std::io::stdin().read_line(&mut description).expect("Could not read line");
+            //     let description = description.trim();
+            //     match create_gist(&request_url , &github_token , description , filename , content).await {
+            //         Ok(gist) => {
+            //             log_info!("Gist created successfully  with id: {}" , gist.id);
+            //         },
+            //         Err(e) => {
+            //             log_error!("Error: {}", e);
+            //         }
+            //     }
+            // }
+            log_info!("Opening the editor to create a new gist.")
         },
         Commands::Edit{gistid} => {
             println!("Edit a gist {}" , gistid);
         },
-        Commands::Delete => {
-            println!("Delete a gist");
+        Commands::Delete{gistid} => {
+            log_warn!("Deleting a gist with id: {}", gistid);
+            println!("Enter 'y' to confirm deletion: ");
+            let mut confirm = String::new();
+            std::io::stdin().read_line(&mut confirm).expect("Could not read line");
+            let confirm = confirm.trim();
+            if confirm == "y" {
+                request_url = format!("https://api.github.com/gists/{}", gistid);
+                match delete_gist(&request_url , &github_token ).await {
+                    Ok(_) => {
+                        log_info!("Gist deleted successfully");
+                    },
+                    Err(e) => {
+                        log_error!("Error while deleting gist: {}", e);
+                    }
+                }
+            } else {
+                println!("Deletion cancelled");
+            }
+
+            
         },
         Commands::View{gistid  }  => {
             let formatted_url : String = format!("https://api.github.com/gists/{}", gistid);
@@ -102,11 +159,29 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                 }
             }
         },
-        Commands::Star => {
-            println!("Star a gist");
+        Commands::Star{gistid} => {
+            log_info!("Starring gist with id: {}", gistid);
+            request_url = format!("https://api.github.com/gists/{}/star", gistid);
+            match star_gist(&request_url , &github_token).await {
+                Ok(_) => {
+                    log_info!("Gist starred successfully");
+                },
+                Err(e) => {
+                    log_error!("Error while starring gist: {}", e);
+                }
+            }
         },
-        Commands::Unstar => {
-            println!("Unstar a gist");
+        Commands::Unstar{gistid} => {
+            log_info!("Unstarring gist with id: {}", gistid);
+            request_url = format!("https://api.github.com/gists/{}/star", gistid);
+            match unstar_gist(&request_url , &github_token).await {
+                Ok(_) => {
+                    log_info!("Gist unstarred successfully");
+                },
+                Err(e) => {
+                    log_error!("Error while unstarring gist: {}", e);
+                }
         }
     }
+}
 }
