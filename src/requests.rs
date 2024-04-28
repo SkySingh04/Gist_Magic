@@ -37,6 +37,32 @@ pub async fn view_gist(request_url: &str , github_token:&str) -> Result<Gist, Er
 
 }
 
+pub async fn edit_gist(request_url: &str , github_token:&str , description: &str , filename: &str , content: &str) -> Result<Gist, Error> {
+    let mut files = std::collections::HashMap::new();
+
+    files.insert(filename.to_owned(), GistFile { content: content.to_owned() });
+    let payload = GistPayload {
+        description: description.to_owned(),
+        public: true,
+        files,
+    }; 
+
+    let response = reqwest::Client::new()
+        .patch(request_url)
+        .header("User-Agent", "Gist_Magic")
+        .header("Authorization", format!("token {}", github_token))
+        .json(&payload)
+        .send()
+        .await?;
+
+    response.error_for_status_ref()?;
+    
+    let gist: Gist = response.json().await
+        .map_err(|e| Error::from(e))?;
+
+    Ok(gist)
+}
+
 pub async fn delete_gist(request_url: &str , github_token:&str) -> Result<(), Error> {
     let response = reqwest::Client::new()
         .delete(request_url)
@@ -81,9 +107,8 @@ pub async fn unstar_gist(request_url: &str , github_token:&str) -> Result<(), Er
 
 pub async fn create_gist(request_url: &str , github_token:&str , description: &str , filename: &str , content: &str) -> Result<Gist, Error> {
     let mut files = std::collections::HashMap::new();
-    
+
     files.insert(filename.to_owned(), GistFile { content: content.to_owned() });
-    // filename is not being sent???
     let payload = GistPayload {
         description: description.to_owned(),
         public: true,

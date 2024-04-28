@@ -20,7 +20,7 @@ async fn main() -> Result<(), Error> {
     };
 
     let args = Args::parse();
-    parse_cmd(args, &github_token).await; // Await the parse_cmd function call.
+    parse_cmd(args, &github_token).await;
 
 
   Ok(())

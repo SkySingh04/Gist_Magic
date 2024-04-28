@@ -1,8 +1,9 @@
 use clap::{Parser, Subcommand};
 // use serde::de;
-use crate::requests::{fetch_gists , view_gist ,delete_gist , star_gist , unstar_gist , create_gist};
+use crate::requests::{fetch_gists , view_gist ,delete_gist , star_gist , unstar_gist , create_gist , edit_gist};
 use textwrap::fill;
 use logger_rust::*;
+use crate::models::{Gist , GistFile , GistPayload};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -81,6 +82,7 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
           }
         },
         Commands::Create{filepath ,start, end} => {
+            //fix this one where file is read, returning 422 error
             let mut filename = String::new();
             let mut content = String::new();
             if let Some(file) = filepath {
@@ -99,6 +101,7 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                 let mut description = String::new();
                 std::io::stdin().read_line(&mut description).expect("Could not read line");
                 let description = description.trim();
+                filename = filename.split("/").last().unwrap().to_string();
                 match create_gist(&request_url , &github_token , description , &filename , &content).await {
                     Ok(gist) => {
                         log_info!("Gist created successfully with id: {}", gist.id);
@@ -133,7 +136,7 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                 let mut description = String::new();
                 std::io::stdin().read_line(&mut description).expect("Could not read line");
                 let description = description.trim();
-                
+
                 match create_gist(&request_url , &github_token , description , filename , &content).await {
                     Ok(gist) => {
                         log_info!("Gist created successfully  with id: {}" , gist.id);
@@ -143,10 +146,47 @@ pub async fn  parse_cmd(args: Args , github_token: &str) {
                     }
                 }
             }
-            log_info!("Opening the editor to create a new gist.")
         },
         Commands::Edit{gistid} => {
-            println!("Edit a gist {}" , gistid);
+            log_info!("Editing a gist with id: {}", gistid);
+            let formatted_url = format!("https://api.github.com/gists/{}", gistid);
+            request_url = formatted_url;
+            match view_gist(&request_url , &github_token).await {
+                Ok(gist) => {
+                    let mut files = std::collections::HashMap::new();
+                    for (filename, file) in gist.files.as_object().unwrap() {
+                        let mut content = file["content"].as_str().unwrap().to_string();
+                        let template = format!("Editing file: {}\n{}", filename, content);
+                        let editedtemplate = edit::edit(&template);
+                        match editedtemplate {
+                            Ok(editedtemplate) => {
+                                content = editedtemplate;
+                            },
+                            Err(e) => {
+                                log_error!("Error: {}", e);
+                            }
+                        }
+                        files.insert(filename.to_string(), GistFile { content });
+                    }
+                    let payload = GistPayload {
+                        description: gist.description.unwrap_or("".to_string()),
+                        public: true,
+                        files,
+                    };
+                    let filename = gist.files.as_object().unwrap().keys().next().unwrap();
+                    match edit_gist(&request_url , &github_token , &payload.description , filename , &payload.files[filename].content).await {
+                        Ok(gist) => {
+                            log_info!("Gist edited successfully with id: {}", gist.id);
+                        },
+                        Err(e) => {
+                            log_error!("Error: {}", e);
+                        }
+                    }
+                },
+                Err(e) => {
+                    log_error!("Error: {}", e);
+                }
+            }
         },
         Commands::Delete{gistid} => {
             log_warn!("Deleting a gist with id: {}", gistid);
