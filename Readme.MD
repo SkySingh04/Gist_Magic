@@ -142,7 +142,7 @@ By configuring your GitHub OAuth token with Gist Magic, you ensure seamless inte
 1. Clone the repository:
 
     ```shell
-    git clone https://github.com/your-username/rust-gist-magic.git
+    git clone https://github.com/Akash-Singh04/rust-gist-magic.git
     ```
 
 2. Build the application:
